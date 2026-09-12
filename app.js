@@ -437,12 +437,12 @@ async function captureAndAnalyzeLabel() {
             try {
                 extractedData = await analyzeWithGemini(base64Image, apiKey);
             } catch (geminiError) {
-                console.warn('Gemini falló, usando OCR Tesseract...', geminiError);
-                extractedData = await analyzeWithTesseract(base64Image);
+                console.warn('Gemini falló, usando OCR Space...', geminiError);
+                extractedData = await analyzeWithOCRSpace(base64Image);
             }
         } else {
-            // Clave inválida o ausente, usar Tesseract
-            extractedData = await analyzeWithTesseract(base64Image);
+            // Clave inválida o ausente, usar OCR.space
+            extractedData = await analyzeWithOCRSpace(base64Image);
         }
 
         DOM.aiLoadingOverlay.classList.add('hidden');
@@ -455,14 +455,26 @@ async function captureAndAnalyzeLabel() {
     }
 }
 
-async function analyzeWithTesseract(base64Image) {
-    if (!window.Tesseract) return {};
+async function analyzeWithOCRSpace(base64Image) {
     try {
-        const worker = await window.Tesseract.createWorker('eng+spa');
-        const ret = await worker.recognize(base64Image);
-        await worker.terminate();
+        const formData = new FormData();
+        formData.append('base64Image', base64Image);
+        formData.append('apikey', 'K88365487288957');
+        formData.append('language', 'eng'); // eng is usually better for sizes/MSRP
+        formData.append('isOverlayRequired', 'false');
         
-        const text = ret.data.text;
+        const res = await fetch('https://api.ocr.space/parse/image', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const json = await res.json();
+        if (json.IsErroredOnProcessing) {
+            console.error('OCR.space error:', json.ErrorMessage);
+            return {};
+        }
+
+        const text = json.ParsedResults[0].ParsedText;
         const data = { description: text.trim() };
         
         // Regex for Price (MSRP $29.50)
@@ -475,7 +487,7 @@ async function analyzeWithTesseract(base64Image) {
         
         return data;
     } catch (e) {
-        console.error('Tesseract error', e);
+        console.error('OCR.space fetch error', e);
         return {};
     }
 }
