@@ -705,7 +705,7 @@ function showProductForm(barcode, editProduct = null, ocrData = null, capturedIm
 
         if (existing) {
             STATE.duplicateProduct = existing;
-            const priceStr = existing.price ? ` — $${existing.price.toFixed(2)}` : '';
+            const priceStr = existing.price ? ` — $${existing.price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '';
             DOM.duplicateInfo.innerHTML = `<strong>${escapeHtml(existing.name)}</strong> · Cantidad: ${existing.quantity}${priceStr}`;
             DOM.duplicateBanner.classList.remove('hidden');
             DOM.formElement.classList.add('hidden');
@@ -1002,7 +1002,7 @@ function renderInventory() {
             minute: '2-digit',
         });
         const priceStr = product.price
-            ? `$${product.price.toFixed(2)}`
+            ? `$${product.price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
             : '—';
         const categoryHTML = product.category
             ? `<span class="category-badge">${product.category}</span>`
