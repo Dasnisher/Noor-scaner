@@ -446,7 +446,8 @@ async function captureAndAnalyzeLabel() {
         }
 
         DOM.aiLoadingOverlay.classList.add('hidden');
-        showProductForm(barcode || (extractedData.barcode || ''), null, extractedData, base64Image);
+        // Do NOT pass base64Image as the last parameter, so the product photo remains empty for the user to take a picture of the clothes
+        showProductForm(barcode || (extractedData.barcode || ''), null, extractedData, null);
     } catch (e) {
         console.error(e);
         DOM.aiLoadingOverlay.classList.add('hidden');
@@ -703,11 +704,14 @@ function fillFormForEdit(product) {
 function fillFormForNew(ocrData = null, capturedImage = null) {
     STATE.editingId = null;
     DOM.formEditId.value = '';
-    DOM.formName.value = ocrData?.name || '';
+    
+    // As requested: Use the raw OCR text as the product name instead of description
+    let rawText = ocrData?.description || '';
+    DOM.formName.value = rawText.trim();
     
     // Add size to description if found
-    let desc = ocrData?.description || '';
-    if (ocrData?.size) desc += `\n[Talla: ${ocrData.size}]`;
+    let desc = '';
+    if (ocrData?.size) desc += `[Talla: ${ocrData.size}]`;
     DOM.formDescription.value = desc.trim();
     
     DOM.formCategory.value = ocrData?.category || '';
