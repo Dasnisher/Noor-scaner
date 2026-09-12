@@ -482,9 +482,10 @@ async function analyzeWithOCRSpace(base64Image) {
         const priceMatch = text.match(/\$\s*(\d+(?:\.\d{2})?)/);
         if (priceMatch) data.price = priceMatch[1];
         
-        // Regex for Size (M, L, 5.5 M, US 11.5)
-        const sizeMatch = text.match(/\b(?:US|UK|EUR)?\s*(\d+(?:\.\d+)?\s*[a-zA-Z]?|\b[SMLX]+\b)\b/i);
-        if (sizeMatch && !sizeMatch[0].match(/^[0-9]+$/)) data.size = sizeMatch[0].trim();
+        // Fashion Size Regex for clothing/shoes (e.g. 8M, US 10, 32x34, XL, M)
+        const sizeRegex = /\b(?:(?:US|UK|EUR|TALLA)\s*\d+(?:\.\d+)?|\d+(?:\.\d+)?\s*(?:M|W|R|S|L|XL|UK|US|EUR)|\d{2}x\d{2}|XXS|XS|S|M|L|XL|XXL|XXXL|1X|2X|3X)\b/i;
+        const sizeMatch = text.match(sizeRegex);
+        if (sizeMatch) data.size = sizeMatch[0].trim().toUpperCase();
         
         return data;
     } catch (e) {
