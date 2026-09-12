@@ -21,7 +21,7 @@ const LEGACY_STORAGE_KEY = 'lector_noor_inventory';
 // ---- Supabase Config ----
 const SUPABASE_URL = 'https://henldxeyptnttzryfvfm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_kN5spBHUq9wdieFKKEMyMg_cTb9ogFl';
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 // ---- DOM Elements ----
 const $ = (sel) => document.querySelector(sel);
@@ -112,7 +112,7 @@ const DOM = {
 // ========================================
 class InventoryDB {
     constructor() {
-        this.supabase = supabase;
+        this.supabase = supabaseClient;
     }
 
     async open() {
