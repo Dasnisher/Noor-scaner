@@ -361,10 +361,19 @@ async function startScanner() {
         DOM.scanActiveControls.classList.remove('hidden');
 
         const config = {
-            fps: 10,
-            qrbox: { width: 250, height: 150 },
+            fps: 15,
+            qrbox: { width: 280, height: 160 },
             aspectRatio: 1.5,
-            formatsToSupport: [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.CODE_128 ]
+            formatsToSupport: [
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.CODE_39,
+                Html5QrcodeSupportedFormats.ITF,
+                Html5QrcodeSupportedFormats.CODABAR
+            ]
         };
 
         // We auto-capture the moment a barcode is clearly detected
@@ -493,20 +502,39 @@ async function analyzeWithOCRSpace(base64Image) {
 
 async function analyzeWithGemini(base64Image, apiKey) {
     const base64Data = base64Image.split(',')[1];
-    const prompt = `Analiza esta etiqueta de ropa/zapatos. Devuelve SOLO un objeto JSON válido con las siguientes claves (si no encuentras alguna, déjala vacía):
-    "barcode": (solo números),
-    "name": (modelo o nombre),
-    "size": (talla),
-    "price": (precio sin símbolo $),
-    "category": (Ropa, Calzado o Accesorios)`;
+    const prompt = `Eres un experto leyendo etiquetas de productos de moda (ropa, zapatos, carteras, accesorios).
+Analiza esta imagen de una etiqueta y extrae TODA la información visible.
 
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+Reglas:
+- Lee el código de barras (UPC/EAN): son los números debajo de las barras verticales. Extráelos EXACTOS, solo dígitos.
+- Identifica la MARCA (ej: GUESS, NIKE, ZARA, MICHAEL KORS, etc.) por logos, texto o prefijos como "GW" = Guess Women.
+- Extrae el MODELO exacto como aparece (ej: DENESA9, AIR MAX 90).
+- Extrae el COLOR o código de color (ej: GOLD 710, BLACK, RED).
+- Extrae la TALLA exacta como aparece (ej: 8.5 M, XL, 32x34).
+- Si hay PRECIO visible (MSRP, retail price), extráelo sin símbolo $.
+- Determina la CATEGORÍA: "Calzado" si es zapato/tenis/bota, "Ropa" si es vestimenta, "Carteras" si es bolso/cartera, "Accesorios" si es otro.
+
+Devuelve SOLO un objeto JSON válido con estas claves (deja vacía "" si no encuentras algo):
+{
+  "barcode": "números del código de barras",
+  "brand": "marca del producto",
+  "model": "nombre/número de modelo",
+  "color": "color o código de color",
+  "size": "talla",
+  "price": "precio sin $",
+  "category": "Calzado|Ropa|Carteras|Accesorios"
+}`;
+
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             contents: [{
                 parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64Data } }]
-            }]
+            }],
+            generationConfig: {
+                temperature: 0.1
+            }
         })
     });
     
@@ -516,13 +544,26 @@ async function analyzeWithGemini(base64Image, apiKey) {
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
     
     const parsed = JSON.parse(text);
+    
+    // Build a clean, structured product name
+    const nameParts = [
+        parsed.brand,
+        parsed.model,
+        parsed.color,
+        parsed.size ? `Talla ${parsed.size}` : ''
+    ].filter(p => p && p.trim() !== '');
+    const cleanName = nameParts.join(' — ');
+    
     return {
-        barcode: parsed.barcode,
-        name: parsed.name,
+        barcode: (parsed.barcode || '').replace(/\D/g, ''),
+        name: cleanName,
         size: parsed.size,
         price: parsed.price,
         category: parsed.category,
-        description: `Extraído con IA: ${parsed.name} | Talla: ${parsed.size}`
+        brand: parsed.brand,
+        model: parsed.model,
+        color: parsed.color,
+        description: ''
     };
 }
 
@@ -756,20 +797,24 @@ function fillFormForNew(ocrData = null, capturedImage = null) {
     STATE.editingId = null;
     DOM.formEditId.value = '';
     
-    // As requested: Use the raw OCR text as the product name instead of description
-    // Clean it up so it's a single line and readable
-    let rawText = ocrData?.description || ocrData?.name || '';
-    rawText = rawText.replace(/[\r\n]+/g, ' - ').replace(/\s{2,}/g, ' ').trim();
+    // Use structured AI data for the product name
+    let productName = ocrData?.name || '';
     
-    // Strip leading special characters/punctuation that OCR often hallucinates (e.g. ";OOV1")
-    rawText = rawText.replace(/^[^a-zA-Z0-9]+/, '');
+    // If name is empty but we have raw description (fallback from OCR Space), use that
+    if (!productName && ocrData?.description) {
+        productName = ocrData.description.replace(/[\r\n]+/g, ' - ').replace(/\s{2,}/g, ' ').trim();
+        productName = productName.replace(/^[^a-zA-Z0-9]+/, '');
+    }
     
-    DOM.formName.value = rawText;
+    DOM.formName.value = productName;
     
-    // Add size to description if found
-    let desc = '';
-    if (ocrData?.size) desc += `[Talla: ${ocrData.size}]`;
-    DOM.formDescription.value = desc.trim();
+    // Build description with available details
+    let descParts = [];
+    if (ocrData?.size) descParts.push(`Talla: ${ocrData.size}`);
+    if (ocrData?.color) descParts.push(`Color: ${ocrData.color}`);
+    if (ocrData?.brand) descParts.push(`Marca: ${ocrData.brand}`);
+    if (ocrData?.model) descParts.push(`Modelo: ${ocrData.model}`);
+    DOM.formDescription.value = descParts.join(' | ');
     
     DOM.formCategory.value = ocrData?.category || '';
     DOM.formQuantity.value = '1';
