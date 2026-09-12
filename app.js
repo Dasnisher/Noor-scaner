@@ -41,6 +41,14 @@ const DOM = {
     manualEntry: $('#manual-entry'),
     manualBarcode: $('#manual-barcode'),
     btnManualSubmit: $('#btn-manual-submit'),
+    btnSettings: $('#btn-settings'),
+    settingsModal: $('#settings-modal'),
+    settingsClose: $('#settings-close'),
+    geminiApiKey: $('#gemini-api-key'),
+    btnSaveSettings: $('#btn-save-settings'),
+    aiLoadingOverlay: $('#ai-loading-overlay'),
+    scanActiveControls: $('#scan-active-controls'),
+    btnCaptureAi: $('#btn-capture-ai'),
 
     // Form
     productForm: $('#product-form'),
@@ -286,6 +294,19 @@ function bindEvents() {
     // Scanner
     DOM.btnStartScan.addEventListener('click', startScanner);
     DOM.btnStopScan.addEventListener('click', stopScanner);
+    DOM.btnCaptureAi.addEventListener('click', captureAndAnalyzeLabel);
+
+    // Settings
+    DOM.btnSettings.addEventListener('click', () => {
+        DOM.geminiApiKey.value = localStorage.getItem('gemini_api_key') || '';
+        DOM.settingsModal.classList.remove('hidden');
+    });
+    DOM.settingsClose.addEventListener('click', () => DOM.settingsModal.classList.add('hidden'));
+    DOM.btnSaveSettings.addEventListener('click', () => {
+        localStorage.setItem('gemini_api_key', DOM.geminiApiKey.value.trim());
+        DOM.settingsModal.classList.add('hidden');
+        showToast('Configuración guardada', 'success');
+    });
 
     // Manual toggle
     DOM.btnManualToggle.addEventListener('click', toggleManualEntry);
@@ -350,44 +371,40 @@ function bindEvents() {
 async function startScanner() {
     try {
         if (typeof Html5Qrcode === 'undefined') {
-            showToast('Error: La librería del escáner no se cargó. Verifica tu conexión a internet.', 'error');
+            showToast('Error: La librería del escáner no se cargó.', 'error');
             return;
         }
 
         STATE.scanner = new Html5Qrcode('scanner-view');
-
         DOM.scannerWrapper.classList.add('active');
         DOM.btnStartScan.classList.add('hidden');
-        DOM.btnStopScan.classList.remove('hidden');
+        DOM.scanActiveControls.classList.remove('hidden');
 
         const config = {
             fps: 10,
             qrbox: { width: 250, height: 150 },
             aspectRatio: 1.5,
-            formatsToSupport: [
-                Html5QrcodeSupportedFormats.EAN_13,
-                Html5QrcodeSupportedFormats.EAN_8,
-                Html5QrcodeSupportedFormats.UPC_A,
-                Html5QrcodeSupportedFormats.UPC_E,
-                Html5QrcodeSupportedFormats.CODE_128,
-                Html5QrcodeSupportedFormats.CODE_39,
-                Html5QrcodeSupportedFormats.CODE_93,
-                Html5QrcodeSupportedFormats.ITF,
-                Html5QrcodeSupportedFormats.QR_CODE,
-            ],
+            formatsToSupport: [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.CODE_128 ]
         };
 
+        // We don't auto-stop on scan success, we just beep and save the last barcode
+        STATE.lastScannedBarcode = null;
         await STATE.scanner.start(
             { facingMode: 'environment' },
             config,
-            onScanSuccess,
+            (decodedText) => {
+                if (STATE.lastScannedBarcode !== decodedText) {
+                    if (navigator.vibrate) navigator.vibrate(100);
+                    playBeep();
+                    STATE.lastScannedBarcode = decodedText;
+                    showToast('Código detectado. Captura la etiqueta.', 'success');
+                }
+            },
             () => {}
         );
-
         STATE.isScanning = true;
     } catch (err) {
-        console.error('Scanner error:', err);
-        showToast('No se pudo iniciar la cámara. Verifica los permisos.', 'error');
+        showToast('No se pudo iniciar la cámara.', 'error');
         resetScannerUI();
     }
 }
@@ -397,9 +414,7 @@ async function stopScanner() {
         try {
             await STATE.scanner.stop();
             STATE.scanner.clear();
-        } catch (err) {
-            console.error('Error stopping scanner:', err);
-        }
+        } catch (err) {}
     }
     STATE.isScanning = false;
     resetScannerUI();
@@ -408,14 +423,104 @@ async function stopScanner() {
 function resetScannerUI() {
     DOM.scannerWrapper.classList.remove('active');
     DOM.btnStartScan.classList.remove('hidden');
-    DOM.btnStopScan.classList.add('hidden');
+    DOM.scanActiveControls.classList.add('hidden');
 }
 
-function onScanSuccess(decodedText) {
-    if (navigator.vibrate) navigator.vibrate(200);
-    playBeep();
+async function captureAndAnalyzeLabel() {
+    const video = document.querySelector('#scanner-view video');
+    if (!video) return;
+
+    // Capture frame
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+
+    const barcode = STATE.lastScannedBarcode || '';
     stopScanner();
-    showProductForm(decodedText);
+    DOM.aiLoadingOverlay.classList.remove('hidden');
+
+    try {
+        const apiKey = localStorage.getItem('gemini_api_key');
+        let extractedData = null;
+
+        if (apiKey) {
+            // Use Gemini API
+            extractedData = await analyzeWithGemini(base64Image, apiKey);
+        } else {
+            // Fallback to Tesseract OCR
+            extractedData = await analyzeWithTesseract(base64Image);
+        }
+
+        DOM.aiLoadingOverlay.classList.add('hidden');
+        showProductForm(barcode || (extractedData.barcode || ''), null, extractedData, base64Image);
+    } catch (e) {
+        console.error(e);
+        DOM.aiLoadingOverlay.classList.add('hidden');
+        showToast('Error leyendo la etiqueta', 'error');
+        showProductForm(barcode);
+    }
+}
+
+async function analyzeWithTesseract(base64Image) {
+    if (!window.Tesseract) return {};
+    try {
+        const worker = await window.Tesseract.createWorker('eng+spa');
+        const ret = await worker.recognize(base64Image);
+        await worker.terminate();
+        
+        const text = ret.data.text;
+        const data = { description: text.trim() };
+        
+        // Regex for Price (MSRP $29.50)
+        const priceMatch = text.match(/\$\s*(\d+(?:\.\d{2})?)/);
+        if (priceMatch) data.price = priceMatch[1];
+        
+        // Regex for Size (M, L, 5.5 M, US 11.5)
+        const sizeMatch = text.match(/\b(?:US|UK|EUR)?\s*(\d+(?:\.\d+)?\s*[a-zA-Z]?|\b[SMLX]+\b)\b/i);
+        if (sizeMatch && !sizeMatch[0].match(/^[0-9]+$/)) data.size = sizeMatch[0].trim();
+        
+        return data;
+    } catch (e) {
+        console.error('Tesseract error', e);
+        return {};
+    }
+}
+
+async function analyzeWithGemini(base64Image, apiKey) {
+    const base64Data = base64Image.split(',')[1];
+    const prompt = `Analiza esta etiqueta de ropa/zapatos. Devuelve SOLO un objeto JSON válido con las siguientes claves (si no encuentras alguna, déjala vacía):
+    "barcode": (solo números),
+    "name": (modelo o nombre),
+    "size": (talla),
+    "price": (precio sin símbolo $),
+    "category": (Ropa, Calzado o Accesorios)`;
+
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            contents: [{
+                parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64Data } }]
+            }]
+        })
+    });
+    
+    if (!res.ok) throw new Error('Gemini API Error');
+    const json = await res.json();
+    let text = json.candidates[0].content.parts[0].text;
+    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    const parsed = JSON.parse(text);
+    return {
+        barcode: parsed.barcode,
+        name: parsed.name,
+        size: parsed.size,
+        price: parsed.price,
+        category: parsed.category,
+        description: `Extraído con IA: ${parsed.name} | Talla: ${parsed.size}`
+    };
 }
 
 function playBeep() {
@@ -537,10 +642,10 @@ function findExistingByBarcode(barcode) {
     return STATE.inventory.find(p => p.barcode === barcode);
 }
 
-function showProductForm(barcode, editProduct = null) {
+function showProductForm(barcode, editProduct = null, ocrData = null, capturedImage = null) {
     DOM.productForm.classList.remove('hidden');
-    DOM.formBarcode.value = barcode;
-    DOM.scannedCodeValue.textContent = barcode;
+    DOM.formBarcode.value = barcode || '';
+    DOM.scannedCodeValue.textContent = barcode || 'No detectado';
 
     // Reset duplicate UI
     DOM.duplicateBanner.classList.add('hidden');
@@ -550,7 +655,7 @@ function showProductForm(barcode, editProduct = null) {
     if (editProduct) {
         fillFormForEdit(editProduct);
     } else {
-        const existing = findExistingByBarcode(barcode);
+        const existing = barcode ? findExistingByBarcode(barcode) : null;
 
         if (existing) {
             STATE.duplicateProduct = existing;
@@ -560,7 +665,7 @@ function showProductForm(barcode, editProduct = null) {
             DOM.formElement.classList.add('hidden');
         } else {
             DOM.formElement.classList.remove('hidden');
-            fillFormForNew();
+            fillFormForNew(ocrData, capturedImage);
         }
     }
 
@@ -588,33 +693,31 @@ function fillFormForEdit(product) {
         resetPhotoUI();
     }
 
-    $('#btn-form-save').innerHTML = `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-            <polyline points="17 21 17 13 7 13 7 21"/>
-            <polyline points="7 3 7 8 15 8"/>
-        </svg>
-        Actualizar Producto`;
+    $('#btn-form-save').innerHTML = `Actualizar Producto`;
 }
 
-function fillFormForNew() {
+function fillFormForNew(ocrData = null, capturedImage = null) {
     STATE.editingId = null;
     DOM.formEditId.value = '';
-    DOM.formName.value = '';
-    DOM.formDescription.value = '';
-    DOM.formCategory.value = '';
-    DOM.formQuantity.value = '';
-    DOM.formPrice.value = '';
-    DOM.formElement.classList.remove('hidden');
-    resetPhotoUI();
+    DOM.formName.value = ocrData?.name || '';
+    
+    // Add size to description if found
+    let desc = ocrData?.description || '';
+    if (ocrData?.size) desc += `\n[Talla: ${ocrData.size}]`;
+    DOM.formDescription.value = desc.trim();
+    
+    DOM.formCategory.value = ocrData?.category || '';
+    DOM.formQuantity.value = '1';
+    DOM.formPrice.value = ocrData?.price || '';
 
-    $('#btn-form-save').innerHTML = `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-            <polyline points="17 21 17 13 7 13 7 21"/>
-            <polyline points="7 3 7 8 15 8"/>
-        </svg>
-        Guardar Producto`;
+    if (capturedImage) {
+        STATE.currentPhotoBase64 = capturedImage;
+        showPhotoPreview(capturedImage);
+    } else {
+        resetPhotoUI();
+    }
+    
+    $('#btn-form-save').innerHTML = `Guardar Producto`;
 }
 
 // ---- Duplicate Action Handlers ----
