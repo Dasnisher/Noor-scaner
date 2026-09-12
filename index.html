@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="App de inventario con escáner de códigos de barras. Escanea, describe y exporta tu inventario a Excel.">
+    <title>Noor Fashion — Inventario</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Top Announcement Bar -->
+    <div class="top-bar">Gestión de Inventario · Noor Fashion</div>
+
+    <!-- Header -->
+    <header class="header" id="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                        <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                        <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                        <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                        <line x1="7" y1="12" x2="17" y2="12" />
+                        <line x1="7" y1="8" x2="13" y2="8" />
+                        <line x1="7" y1="16" x2="15" y2="16" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="logo-text">Noor</h1>
+                    <p class="logo-subtitle">Fashion</p>
+                </div>
+            </div>
+            <div class="header-stats">
+                <div class="stat-badge" id="stat-total">
+                    <span class="stat-number">0</span>
+                    <span class="stat-label">Productos</span>
+                </div>
+                <div class="stat-badge" id="stat-today">
+                    <span class="stat-number">0</span>
+                    <span class="stat-label">Hoy</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Scanner Section -->
+        <section class="card scanner-section" id="scanner-section">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                        <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                        <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                        <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                    </svg>
+                    Escáner de Código de Barras
+                </h2>
+                <button class="btn btn-ghost" id="btn-manual-toggle" title="Ingresar código manualmente">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                    </svg>
+                    Manual
+                </button>
+            </div>
+
+            <!-- Camera Scanner -->
+            <div class="scanner-wrapper" id="scanner-wrapper">
+                <div id="scanner-view" class="scanner-view"></div>
+                <div class="scanner-overlay" id="scanner-overlay">
+                    <div class="scanner-frame">
+                        <div class="scanner-corner top-left"></div>
+                        <div class="scanner-corner top-right"></div>
+                        <div class="scanner-corner bottom-left"></div>
+                        <div class="scanner-corner bottom-right"></div>
+                        <div class="scanner-line"></div>
+                    </div>
+                    <p class="scanner-hint">Apunta la cámara al código de barras</p>
+                </div>
+            </div>
+
+            <!-- Scanner Controls -->
+            <div class="scanner-controls">
+                <button class="btn btn-primary btn-lg" id="btn-start-scan">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                    </svg>
+                    Iniciar Escáner
+                </button>
+                <button class="btn btn-danger btn-lg hidden" id="btn-stop-scan">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    </svg>
+                    Detener Escáner
+                </button>
+            </div>
+
+            <!-- Manual Entry -->
+            <div class="manual-entry hidden" id="manual-entry">
+                <div class="input-group">
+                    <label class="input-label" for="manual-barcode">Código de barras</label>
+                    <div class="input-with-btn">
+                        <input type="text" id="manual-barcode" class="input"
+                            placeholder="Escribe o pega el código de barras..." autocomplete="off">
+                        <button class="btn btn-primary" id="btn-manual-submit">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="9 18 15 12 9 6" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Form (hidden by default) -->
+        <section class="card product-form hidden" id="product-form">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="12" y1="18" x2="12" y2="12" />
+                        <line x1="9" y1="15" x2="15" y2="15" />
+                    </svg>
+                    Registrar Producto
+                </h2>
+                <button class="btn btn-ghost" id="btn-cancel-form">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="scanned-code" id="scanned-code-display">
+                <span class="code-label">Código escaneado:</span>
+                <span class="code-value" id="scanned-code-value">—</span>
+            </div>
+
+            <!-- Duplicate Detection Banner -->
+            <div class="duplicate-banner hidden" id="duplicate-banner">
+                <div class="duplicate-banner-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                </div>
+                <div class="duplicate-banner-content">
+                    <p class="duplicate-banner-title">¡Producto ya registrado!</p>
+                    <p class="duplicate-banner-info" id="duplicate-info">—</p>
+                    <div class="duplicate-actions">
+                        <button type="button" class="btn btn-primary btn-sm" id="btn-add-quantity">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            Sumar cantidad
+                        </button>
+                        <button type="button" class="btn btn-ghost btn-sm" id="btn-edit-existing">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                            </svg>
+                            Editar producto
+                        </button>
+                        <button type="button" class="btn btn-ghost btn-sm" id="btn-new-anyway">Registrar como
+                            nuevo</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Add Quantity (shown when adding to existing) -->
+            <div class="quick-add hidden" id="quick-add-section">
+                <div class="quick-add-header">
+                    <span class="quick-add-title">Agregar cantidad a: <strong id="quick-add-name">—</strong></span>
+                </div>
+                <div class="quick-add-controls">
+                    <button type="button" class="btn btn-ghost btn-icon" id="quick-add-minus">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                    </button>
+                    <input type="number" id="quick-add-qty" class="input quick-add-input" value="1" min="1">
+                    <button type="button" class="btn btn-ghost btn-icon" id="quick-add-plus">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                    </button>
+                    <button type="button" class="btn btn-success" id="quick-add-confirm">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        Confirmar
+                    </button>
+                </div>
+                <p class="quick-add-hint" id="quick-add-hint">Cantidad actual: <span id="quick-add-current">0</span> →
+                    Nueva cantidad: <span id="quick-add-new">0</span></p>
+            </div>
+
+            <form id="form-product" class="form">
+                <input type="hidden" id="form-barcode" value="">
+                <input type="hidden" id="form-edit-id" value="">
+
+                <div class="form-grid">
+                    <div class="input-group full-width">
+                        <label class="input-label" for="form-name">Nombre del producto *</label>
+                        <input type="text" id="form-name" class="input" placeholder="Ej: Coca-Cola 600ml" required
+                            autocomplete="off">
+                    </div>
+
+                    <div class="input-group full-width">
+                        <label class="input-label" for="form-description">Descripción</label>
+                        <textarea id="form-description" class="input textarea" placeholder="Describe el producto..."
+                            rows="3"></textarea>
+                    </div>
+
+                    <div class="input-group full-width">
+                        <label class="input-label">Foto del producto</label>
+                        <div class="photo-input-area" id="photo-input-area">
+                            <div class="photo-placeholder" id="photo-placeholder">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <polyline points="21 15 16 10 5 21"/>
+                                </svg>
+                                <span>Tomar foto o seleccionar imagen</span>
+                            </div>
+                            <img class="photo-preview hidden" id="photo-preview" alt="Vista previa">
+                            <div class="photo-actions hidden" id="photo-actions">
+                                <button type="button" class="btn btn-ghost btn-sm" id="btn-change-photo">Cambiar</button>
+                                <button type="button" class="btn btn-danger-outline btn-sm" id="btn-remove-photo">Quitar</button>
+                            </div>
+                            <input type="file" id="form-photo" accept="image/*" capture="environment" class="photo-file-input">
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label" for="form-category">Categoría</label>
+                        <select id="form-category" class="input select">
+                            <option value="">Seleccionar...</option>
+                            <option value="Alimentos">🍞 Alimentos</option>
+                            <option value="Bebidas">🥤 Bebidas</option>
+                            <option value="Limpieza">🧹 Limpieza</option>
+                            <option value="Higiene Personal">🧴 Higiene Personal</option>
+                            <option value="Electrónica">📱 Electrónica</option>
+                            <option value="Ropa">👕 Ropa</option>
+                            <option value="Papelería">📝 Papelería</option>
+                            <option value="Hogar">🏠 Hogar</option>
+                            <option value="Mascotas">🐾 Mascotas</option>
+                            <option value="Otro">📦 Otro</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label" for="form-quantity">Cantidad *</label>
+                        <input type="number" id="form-quantity" class="input" placeholder="0" min="0" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label" for="form-price">Precio unitario ($)</label>
+                        <input type="number" id="form-price" class="input" placeholder="0.00" min="0" step="0.01">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-ghost" id="btn-form-cancel">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-lg" id="btn-form-save">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                            <polyline points="17 21 17 13 7 13 7 21" />
+                            <polyline points="7 3 7 8 15 8" />
+                        </svg>
+                        Guardar Producto
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Inventory Table -->
+        <section class="card inventory-section" id="inventory-section">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                    </svg>
+                    Inventario
+                </h2>
+                <div class="card-actions">
+                    <button class="btn btn-success" id="btn-export-excel">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Exportar Excel
+                    </button>
+                    <button class="btn btn-danger-outline" id="btn-clear-all">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                        Limpiar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search & Filter -->
+            <div class="search-bar">
+                <div class="search-input-wrapper">
+                    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input type="text" id="search-input" class="input search-field"
+                        placeholder="Buscar por nombre, código o categoría...">
+                </div>
+                <select id="filter-category" class="input select filter-select">
+                    <option value="">Todas las categorías</option>
+                    <option value="Alimentos">🍞 Alimentos</option>
+                    <option value="Bebidas">🥤 Bebidas</option>
+                    <option value="Limpieza">🧹 Limpieza</option>
+                    <option value="Higiene Personal">🧴 Higiene Personal</option>
+                    <option value="Electrónica">📱 Electrónica</option>
+                    <option value="Ropa">👕 Ropa</option>
+                    <option value="Papelería">📝 Papelería</option>
+                    <option value="Hogar">🏠 Hogar</option>
+                    <option value="Mascotas">🐾 Mascotas</option>
+                    <option value="Otro">📦 Otro</option>
+                </select>
+            </div>
+
+            <!-- Table -->
+            <div class="table-wrapper">
+                <table class="table" id="inventory-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Foto</th>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Categoría</th>
+                            <th>Cantidad</th>
+                            <th>Precio</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-tbody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" id="empty-state">
+                <div class="empty-icon">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                    </svg>
+                </div>
+                <h3>Sin productos registrados</h3>
+                <p>Escanea un código de barras o ingresa uno manualmente para comenzar</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Confirm Dialog -->
+    <div class="modal-overlay hidden" id="confirm-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="confirm-title">Confirmar</h3>
+            </div>
+            <p id="confirm-message">¿Estás seguro?</p>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" id="confirm-cancel">Cancelar</button>
+                <button class="btn btn-danger" id="confirm-ok">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photo Lightbox -->
+    <div class="modal-overlay hidden" id="photo-lightbox">
+        <div class="lightbox">
+            <button class="btn btn-ghost lightbox-close" id="lightbox-close">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+            <img id="lightbox-img" src="" alt="Foto del producto">
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
