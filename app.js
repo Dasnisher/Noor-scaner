@@ -684,6 +684,11 @@ function closeLightbox() {
     DOM.lightboxImg.src = '';
 }
 
+function handleImageError(img) {
+    const fallbackHTML = `<div class="no-photo" title="Sin foto"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
+    img.outerHTML = fallbackHTML;
+}
+
 // ---- Product Form ----
 function findExistingByBarcode(barcode) {
     return STATE.inventory.find(p => p.barcode === barcode);
@@ -1019,7 +1024,7 @@ function renderInventory() {
 
         const fallbackHTML = `<div class="no-photo" title="Sin foto"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
         const photoHTML = product.photo
-            ? `<img class="photo-thumb" src="${product.photo}" alt="Foto" onerror="this.outerHTML='${fallbackHTML.replace(/'/g, "\\'")}'" onclick="viewPhoto('${product.id}')">`
+            ? `<img class="photo-thumb" src="${product.photo}" alt="Foto" onerror="handleImageError(this)" onclick="viewPhoto('${product.id}')">`
             : fallbackHTML;
 
         return `
