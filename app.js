@@ -387,17 +387,19 @@ async function startScanner() {
             formatsToSupport: [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.CODE_128 ]
         };
 
-        // We don't auto-stop on scan success, we just beep and save the last barcode
+        // We auto-capture the moment a barcode is clearly detected
         STATE.lastScannedBarcode = null;
         await STATE.scanner.start(
             { facingMode: 'environment' },
             config,
             (decodedText) => {
-                if (STATE.lastScannedBarcode !== decodedText) {
+                if (STATE.isScanning && STATE.lastScannedBarcode !== decodedText) {
                     if (navigator.vibrate) navigator.vibrate(100);
                     playBeep();
                     STATE.lastScannedBarcode = decodedText;
-                    showToast('Código detectado. Captura la etiqueta.', 'success');
+                    STATE.isScanning = false; // Prevent multiple captures
+                    showToast('Etiqueta enfocada. Procesando...', 'success');
+                    captureAndAnalyzeLabel(); // Auto trigger!
                 }
             },
             () => {}
@@ -429,6 +431,9 @@ function resetScannerUI() {
 async function captureAndAnalyzeLabel() {
     const video = document.querySelector('#scanner-view video');
     if (!video) return;
+
+    // Wait a tiny bit (300ms) to ensure auto-focus is completely settled before snapping the picture
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     // Capture frame
     const canvas = document.createElement('canvas');
