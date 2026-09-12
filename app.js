@@ -629,6 +629,11 @@ function resetPhotoUI() {
     DOM.formPhoto.style.display = '';
 }
 
+// Bind Photo Events
+DOM.formPhoto.addEventListener('change', handlePhotoSelect);
+DOM.btnChangePhoto.addEventListener('click', () => DOM.formPhoto.click());
+DOM.btnRemovePhoto.addEventListener('click', resetPhotoUI);
+
 // ---- Price Input Formatting ----
 function handlePriceInput(e) {
     let input = e.target;
