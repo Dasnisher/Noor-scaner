@@ -434,7 +434,7 @@ async function captureAndAnalyzeLabel() {
         const apiKey = 'AQ.Ab8RN6I15' + 'BZKTlE7jgDE' + 'fqbuohdpF3' + 'PXULmaNdHASLdSkC1dUw';
         let extractedData = null;
 
-        if (apiKey && apiKey.startsWith('AIz')) {
+        if (apiKey && (apiKey.startsWith('AIz') || apiKey.startsWith('AQ.'))) {
             try {
                 extractedData = await analyzeWithGemini(base64Image, apiKey);
             } catch (geminiError) {
@@ -754,6 +754,10 @@ function fillFormForNew(ocrData = null, capturedImage = null) {
     // Clean it up so it's a single line and readable
     let rawText = ocrData?.description || ocrData?.name || '';
     rawText = rawText.replace(/[\r\n]+/g, ' - ').replace(/\s{2,}/g, ' ').trim();
+    
+    // Strip leading special characters/punctuation that OCR often hallucinates (e.g. ";OOV1")
+    rawText = rawText.replace(/^[^a-zA-Z0-9]+/, '');
+    
     DOM.formName.value = rawText;
     
     // Add size to description if found
