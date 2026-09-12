@@ -18,6 +18,11 @@ const DB_VERSION = 1;
 const STORE_NAME = 'products';
 const LEGACY_STORAGE_KEY = 'lector_noor_inventory';
 
+// ---- Supabase Config ----
+const SUPABASE_URL = 'https://henldxeyptnttzryfvfm.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_kN5spBHUq9wdieFKKEMyMg_cTb9ogFl';
+const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
 // ---- DOM Elements ----
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
@@ -107,70 +112,142 @@ const DOM = {
 // ========================================
 class InventoryDB {
     constructor() {
-        this.db = null;
+        this.supabase = supabase;
     }
 
     async open() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
+        if (!this.supabase) {
+            console.error('Supabase no está configurado correctamente');
+            showToast('Error de conexión a la nube', 'error');
+            return;
+        }
+        return Promise.resolve(this.supabase);
+    }
 
-            request.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                if (!db.objectStoreNames.contains(STORE_NAME)) {
-                    db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-                }
-            };
-
-            request.onsuccess = (e) => {
-                this.db = e.target.result;
-                resolve(this.db);
-            };
-
-            request.onerror = (e) => {
-                console.error('IndexedDB error:', e);
-                reject(e);
-            };
-        });
+    async uploadPhoto(base64Data, filename) {
+        if (!base64Data || !base64Data.startsWith('data:image')) return null;
+        
+        try {
+            const res = await fetch(base64Data);
+            const blob = await res.blob();
+            const { data, error } = await this.supabase
+                .storage
+                .from('product-photos')
+                .upload(filename, blob, { upsert: true });
+                
+            if (error) throw error;
+            
+            const { data: { publicUrl } } = this.supabase
+                .storage
+                .from('product-photos')
+                .getPublicUrl(filename);
+                
+            return publicUrl;
+        } catch (e) {
+            console.error('Error subiendo foto:', e);
+            return null;
+        }
     }
 
     async getAll() {
-        return new Promise((resolve, reject) => {
-            const tx = this.db.transaction(STORE_NAME, 'readonly');
-            const store = tx.objectStore(STORE_NAME);
-            const request = store.getAll();
-            request.onsuccess = () => resolve(request.result || []);
-            request.onerror = () => reject(request.error);
-        });
+        try {
+            const { data, error } = await this.supabase
+                .from('products')
+                .select('*')
+                .order('created_at', { ascending: false });
+                
+            if (error) throw error;
+            
+            return data.map(p => ({
+                id: p.id,
+                barcode: p.barcode,
+                name: p.name,
+                description: p.description,
+                category: p.category,
+                quantity: p.quantity,
+                price: p.price,
+                photo: p.photo_url,
+                createdAt: p.created_at
+            }));
+        } catch (e) {
+            console.error('Error obteniendo productos:', e);
+            showToast('Error sincronizando con la nube', 'error');
+            return [];
+        }
     }
 
     async put(product) {
-        return new Promise((resolve, reject) => {
-            const tx = this.db.transaction(STORE_NAME, 'readwrite');
-            const store = tx.objectStore(STORE_NAME);
-            const request = store.put(product);
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
-        });
+        try {
+            let photoUrl = product.photo;
+            
+            // Si la foto es nueva (base64), subirla
+            if (photoUrl && photoUrl.startsWith('data:image')) {
+                showToast('Subiendo foto a la nube...', 'success');
+                const filename = `${product.id}_${Date.now()}.jpg`;
+                const uploadedUrl = await this.uploadPhoto(photoUrl, filename);
+                if (uploadedUrl) photoUrl = uploadedUrl;
+            }
+
+            const dbRow = {
+                id: product.id,
+                barcode: product.barcode,
+                name: product.name,
+                description: product.description || '',
+                category: product.category || '',
+                quantity: product.quantity || 0,
+                price: product.price || 0,
+                photo_url: photoUrl,
+                created_at: product.createdAt || new Date().toISOString()
+            };
+
+            const { error } = await this.supabase
+                .from('products')
+                .upsert(dbRow);
+                
+            if (error) throw error;
+            
+            // Update the local product photo reference to the public URL
+            product.photo = photoUrl;
+            return;
+        } catch (e) {
+            console.error('Error guardando producto:', e);
+            showToast('Error al guardar en la nube', 'error');
+            throw e;
+        }
     }
 
     async delete(id) {
-        return new Promise((resolve, reject) => {
-            const tx = this.db.transaction(STORE_NAME, 'readwrite');
-            const store = tx.objectStore(STORE_NAME);
-            const request = store.delete(id);
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
-        });
+        try {
+            // Eliminar producto
+            const { error } = await this.supabase
+                .from('products')
+                .delete()
+                .eq('id', id);
+                
+            if (error) throw error;
+            
+            // Intento básico de eliminar foto si tuviera un nombre deducible
+            // (En un entorno real tendríamos que guardar el path de la foto o buscarlo)
+        } catch (e) {
+            console.error('Error eliminando producto:', e);
+            showToast('Error al eliminar de la nube', 'error');
+            throw e;
+        }
     }
 
     async clear() {
-        return new Promise((resolve, reject) => {
-            const tx = this.db.transaction(STORE_NAME, 'readwrite');
-            const store = tx.objectStore(STORE_NAME);
-            const request = store.clear();
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
-        });
+        try {
+            const { error } = await this.supabase
+                .from('products')
+                .delete()
+                .neq('id', '0'); // Hack para borrar todos
+                
+            if (error) throw error;
+        } catch (e) {
+            console.error('Error limpiando base de datos:', e);
+            showToast('Error al limpiar la nube', 'error');
+            throw e;
+        }
     }
 }
 
