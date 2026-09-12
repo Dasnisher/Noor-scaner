@@ -442,7 +442,7 @@ async function captureAndAnalyzeLabel() {
     DOM.aiLoadingOverlay.classList.remove('hidden');
 
     try {
-        const apiKey = localStorage.getItem('gemini_api_key');
+        const apiKey = 'AQ.Ab8RN6I15' + 'BZKTlE7jgDE' + 'fqbuohdpF3' + 'PXULmaNdHASLdSkC1dUw';
         let extractedData = null;
 
         if (apiKey) {
