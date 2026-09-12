@@ -77,15 +77,8 @@
             <!-- Camera Scanner -->
             <div class="scanner-wrapper" id="scanner-wrapper">
                 <div id="scanner-view" class="scanner-view"></div>
-                <div class="scanner-overlay" id="scanner-overlay">
-                    <div class="scanner-frame">
-                        <div class="scanner-corner top-left"></div>
-                        <div class="scanner-corner top-right"></div>
-                        <div class="scanner-corner bottom-left"></div>
-                        <div class="scanner-corner bottom-right"></div>
-                        <div class="scanner-line"></div>
-                    </div>
-                    <p class="scanner-hint">Apunta la cámara al código de barras</p>
+                <div class="scanner-overlay" id="scanner-overlay" style="pointer-events: none;">
+                    <p class="scanner-hint" style="position: absolute; bottom: 20px; width: 100%; text-align: center;">Apunta la cámara a la etiqueta</p>
                 </div>
             </div>
 
@@ -100,8 +93,8 @@
                     Iniciar Escáner
                 </button>
                 <div class="scan-active-controls hidden" id="scan-active-controls"
-                    style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
-                    <button class="btn btn-primary btn-lg" id="btn-capture-ai" style="background-color: var(--accent);">
+                    style="display: flex; gap: 10px; flex-direction: column; align-items: center; width: 100%; max-width: 300px; margin: 0 auto;">
+                    <button class="btn btn-primary btn-lg" id="btn-capture-ai" style="width: 100%;">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path
@@ -110,10 +103,10 @@
                             <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
                             <line x1="12" y1="22.08" x2="12" y2="12"></line>
                         </svg>
-                        Forzar Captura
+                        CAPTURAR
                     </button>
-                    <button class="btn btn-danger btn-lg" id="btn-stop-scan">
-                        Detener
+                    <button class="btn btn-danger btn-lg" id="btn-stop-scan" style="width: 100%;">
+                        DETENER
                     </button>
                 </div>
             </div>
@@ -462,7 +455,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
-    <script src="app.js?v=5"></script>
+    <script src="app.js?v=6"></script>
 </body>
 
 </html>
