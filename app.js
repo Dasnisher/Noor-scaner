@@ -184,13 +184,9 @@ class InventoryDB {
         try {
             let photoUrl = product.photo;
             
-            // Si la foto es nueva (base64), subirla
-            if (photoUrl && photoUrl.startsWith('data:image')) {
-                showToast('Subiendo foto a la nube...', 'success');
-                const filename = `${product.id}_${Date.now()}.jpg`;
-                const uploadedUrl = await this.uploadPhoto(photoUrl, filename);
-                if (uploadedUrl) photoUrl = uploadedUrl;
-            }
+            // Bypass Supabase Storage bucket to avoid "private bucket" permission issues
+            // We just save the base64 string directly to the PostgreSQL text column.
+            // (At 800px / 60% quality, the base64 string is small enough for this to be perfectly fine).
 
             const dbRow = {
                 id: product.id,
