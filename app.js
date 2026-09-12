@@ -11,6 +11,7 @@ const STATE = {
     editingId: null,
     duplicateProduct: null,
     currentPhotoBase64: null,
+    lastOcrData: null,
 };
 
 const DB_NAME = 'lector_noor_db';
@@ -692,6 +693,8 @@ function showProductForm(barcode, editProduct = null, ocrData = null, capturedIm
     DOM.productForm.classList.remove('hidden');
     DOM.formBarcode.value = barcode || '';
     DOM.scannedCodeValue.textContent = barcode || 'No detectado';
+    
+    if (ocrData) STATE.lastOcrData = ocrData;
 
     // Reset duplicate UI
     DOM.duplicateBanner.classList.add('hidden');
@@ -748,8 +751,10 @@ function fillFormForNew(ocrData = null, capturedImage = null) {
     DOM.formEditId.value = '';
     
     // As requested: Use the raw OCR text as the product name instead of description
-    let rawText = ocrData?.description || '';
-    DOM.formName.value = rawText.trim();
+    // Clean it up so it's a single line and readable
+    let rawText = ocrData?.description || ocrData?.name || '';
+    rawText = rawText.replace(/[\r\n]+/g, ' - ').replace(/\s{2,}/g, ' ').trim();
+    DOM.formName.value = rawText;
     
     // Add size to description if found
     let desc = '';
@@ -830,7 +835,7 @@ function handleNewAnyway() {
     DOM.duplicateBanner.classList.add('hidden');
     DOM.quickAddSection.classList.add('hidden');
     STATE.duplicateProduct = null;
-    fillFormForNew();
+    fillFormForNew(STATE.lastOcrData);
     setTimeout(() => DOM.formName.focus(), 200);
 }
 
