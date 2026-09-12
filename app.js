@@ -684,6 +684,7 @@ function showProductForm(barcode, editProduct = null, ocrData = null, capturedIm
 function fillFormForEdit(product) {
     STATE.editingId = product.id;
     DOM.formEditId.value = product.id;
+    DOM.formBarcode.value = product.barcode || '';
     DOM.formName.value = product.name;
     DOM.formDescription.value = product.description || '';
     DOM.formCategory.value = product.category || '';
@@ -806,26 +807,48 @@ function hideProductForm() {
 
 async function handleFormSubmit(e) {
     e.preventDefault();
+    
+    if (STATE.isSubmitting) return;
+    STATE.isSubmitting = true;
 
-    const barcode = DOM.formBarcode.value.trim();
-    const name = DOM.formName.value.trim();
-    const description = DOM.formDescription.value.trim();
-    const category = DOM.formCategory.value;
-    const quantity = parseInt(DOM.formQuantity.value) || 0;
-    const price = parseFloat(DOM.formPrice.value) || 0;
-    const photo = STATE.currentPhotoBase64 || null;
+    try {
+        const barcode = DOM.formBarcode.value.trim();
+        const name = DOM.formName.value.trim();
+        const description = DOM.formDescription.value.trim();
+        const category = DOM.formCategory.value;
+        const quantity = parseInt(DOM.formQuantity.value) || 0;
+        
+        // Parse price safely, replacing comma with dot if necessary
+        const rawPrice = DOM.formPrice.value.replace(',', '.');
+        const price = parseFloat(rawPrice) || 0;
+        
+        const photo = STATE.currentPhotoBase64 || null;
 
-    if (!name) {
-        showToast('El nombre del producto es obligatorio', 'error');
-        DOM.formName.focus();
-        return;
-    }
+        if (!name) {
+            showToast('El nombre del producto es obligatorio', 'error');
+            DOM.formName.focus();
+            return;
+        }
 
-    if (STATE.editingId) {
-        const idx = STATE.inventory.findIndex(p => p.id === STATE.editingId);
-        if (idx !== -1) {
-            STATE.inventory[idx] = {
-                ...STATE.inventory[idx],
+        if (STATE.editingId) {
+            const idx = STATE.inventory.findIndex(p => p.id === STATE.editingId);
+            if (idx !== -1) {
+                STATE.inventory[idx] = {
+                    ...STATE.inventory[idx],
+                    barcode,
+                    name,
+                    description,
+                    category,
+                    quantity,
+                    price,
+                    photo,
+                };
+                await db.put(STATE.inventory[idx]);
+                showToast(`"${name}" actualizado correctamente`, 'success');
+            }
+        } else {
+            const product = {
+                id: generateId(),
                 barcode,
                 name,
                 description,
@@ -833,30 +856,19 @@ async function handleFormSubmit(e) {
                 quantity,
                 price,
                 photo,
+                createdAt: new Date().toISOString(),
             };
-            await db.put(STATE.inventory[idx]);
-            showToast(`"${name}" actualizado correctamente`, 'success');
+            STATE.inventory.unshift(product);
+            await db.put(product);
+            showToast(`"${name}" agregado al inventario`, 'success');
         }
-    } else {
-        const product = {
-            id: generateId(),
-            barcode,
-            name,
-            description,
-            category,
-            quantity,
-            price,
-            photo,
-            createdAt: new Date().toISOString(),
-        };
-        STATE.inventory.unshift(product);
-        await db.put(product);
-        showToast(`"${name}" agregado al inventario`, 'success');
-    }
 
-    renderInventory();
-    updateStats();
-    hideProductForm();
+        renderInventory();
+        updateStats();
+        hideProductForm();
+    } finally {
+        STATE.isSubmitting = false;
+    }
 }
 
 // ---- Inventory CRUD ----
@@ -952,7 +964,7 @@ function renderInventory() {
             ? `$${product.price.toFixed(2)}`
             : '—';
         const categoryHTML = product.category
-            ? `<span class="category-badge">${getCategoryEmoji(product.category)} ${product.category}</span>`
+            ? `<span class="category-badge">${product.category}</span>`
             : '<span style="color:var(--text-muted)">—</span>';
 
         const photoHTML = product.photo

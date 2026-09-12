@@ -224,10 +224,14 @@
             </div>
 
             <form id="form-product" class="form">
-                <input type="hidden" id="form-barcode" value="">
                 <input type="hidden" id="form-edit-id" value="">
 
                 <div class="form-grid">
+                    <div class="input-group full-width">
+                        <label class="input-label" for="form-barcode">Código de barras (Opcional)</label>
+                        <input type="text" id="form-barcode" class="input" placeholder="Ej: 123456789" autocomplete="off">
+                    </div>
+
                     <div class="input-group full-width">
                         <label class="input-label" for="form-name">Nombre del producto *</label>
                         <input type="text" id="form-name" class="input" placeholder="Ej:  " required autocomplete="off">
@@ -276,13 +280,13 @@
                     </div>
 
                     <div class="input-group">
-                        <label class="input-label" for="form-quantity">Cantidad *</label>
-                        <input type="number" id="form-quantity" class="input" placeholder="0" min="0" required>
+                        <label class="input-label" for="form-quantity">Cantidad</label>
+                        <input type="number" id="form-quantity" class="input" placeholder="0" min="0">
                     </div>
 
                     <div class="input-group">
                         <label class="input-label" for="form-price">Precio unitario ($)</label>
-                        <input type="number" id="form-price" class="input" placeholder="0.00" min="0" step="0.01">
+                        <input type="text" id="form-price" class="input" placeholder="0.00" inputmode="decimal" pattern="[0-9.,]*">
                     </div>
                 </div>
 
@@ -346,16 +350,11 @@
                 </div>
                 <select id="filter-category" class="input select filter-select">
                     <option value="">Todas las categorías</option>
-                    <option value="Alimentos">🍞 Alimentos</option>
-                    <option value="Bebidas">🥤 Bebidas</option>
-                    <option value="Limpieza">🧹 Limpieza</option>
-                    <option value="Higiene Personal">🧴 Higiene Personal</option>
-                    <option value="Electrónica">📱 Electrónica</option>
-                    <option value="Ropa">👕 Ropa</option>
-                    <option value="Papelería">📝 Papelería</option>
-                    <option value="Hogar">🏠 Hogar</option>
-                    <option value="Mascotas">🐾 Mascotas</option>
-                    <option value="Otro">📦 Otro</option>
+                    <option value="Ropa">Ropa</option>
+                    <option value="Calzado">Calzado</option>
+                    <option value="Carteras">Carteras</option>
+                    <option value="Accesorios">Accesorios</option>
+                    <option value="Otro">Otro</option>
                 </select>
             </div>
 
@@ -450,7 +449,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
-    <script src="app.js?v=6"></script>
+    <script src="app.js?v=7"></script>
 </body>
 
 </html>
