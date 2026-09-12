@@ -46,12 +46,6 @@
                     <span class="stat-number">0</span>
                     <span class="stat-label">Hoy</span>
                 </div>
-                <button class="btn btn-ghost" id="btn-settings" title="Configuración de IA" style="margin-left: 10px; padding: 8px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="3"></circle>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                    </svg>
-                </button>
             </div>
         </div>
     </header>
@@ -438,26 +432,6 @@
         </div>
     </div>
 
-    <!-- Settings Modal -->
-    <div class="lightbox hidden" id="settings-modal">
-        <div class="lightbox-content" style="max-width: 500px; padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 style="margin: 0; color: var(--accent); font-family: 'Cormorant Garamond', serif; font-size: 1.5rem;">Configuración de IA (Gemini)</h3>
-                <button class="btn btn-ghost" id="settings-close" style="padding: 5px;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
-            </div>
-            <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;">
-                Para que la cámara lea las etiquetas automáticamente, necesitas una clave gratuita de Google Gemini. Consíguela en <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--accent);">Google AI Studio</a>.
-            </p>
-            <div class="input-group">
-                <label class="input-label" for="gemini-api-key">Gemini API Key</label>
-                <input type="password" id="gemini-api-key" class="input" placeholder="AIzaSy...">
-            </div>
-            <button class="btn btn-primary" id="btn-save-settings" style="width: 100%; margin-top: 15px;">Guardar Configuración</button>
-        </div>
-    </div>
-
     <!-- Loading Toast/Overlay -->
     <div id="ai-loading-overlay" class="hidden" style="position: fixed; inset: 0; background: rgba(10, 10, 10, 0.8); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <div style="width: 50px; height: 50px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite;"></div>
@@ -473,7 +447,7 @@
     
     <!-- Tesseract.js for OCR -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <script src="app.js?v=3"></script>
+    <script src="app.js?v=4"></script>
 </body>
 
 </html>

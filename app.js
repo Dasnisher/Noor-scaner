@@ -41,11 +41,6 @@ const DOM = {
     manualEntry: $('#manual-entry'),
     manualBarcode: $('#manual-barcode'),
     btnManualSubmit: $('#btn-manual-submit'),
-    btnSettings: $('#btn-settings'),
-    settingsModal: $('#settings-modal'),
-    settingsClose: $('#settings-close'),
-    geminiApiKey: $('#gemini-api-key'),
-    btnSaveSettings: $('#btn-save-settings'),
     aiLoadingOverlay: $('#ai-loading-overlay'),
     scanActiveControls: $('#scan-active-controls'),
     btnCaptureAi: $('#btn-capture-ai'),
@@ -296,18 +291,6 @@ function bindEvents() {
     DOM.btnStopScan.addEventListener('click', stopScanner);
     DOM.btnCaptureAi.addEventListener('click', captureAndAnalyzeLabel);
 
-    // Settings
-    DOM.btnSettings.addEventListener('click', () => {
-        DOM.geminiApiKey.value = localStorage.getItem('gemini_api_key') || '';
-        DOM.settingsModal.classList.remove('hidden');
-    });
-    DOM.settingsClose.addEventListener('click', () => DOM.settingsModal.classList.add('hidden'));
-    DOM.btnSaveSettings.addEventListener('click', () => {
-        localStorage.setItem('gemini_api_key', DOM.geminiApiKey.value.trim());
-        DOM.settingsModal.classList.add('hidden');
-        showToast('Configuración guardada', 'success');
-    });
-
     // Manual toggle
     DOM.btnManualToggle.addEventListener('click', toggleManualEntry);
 
@@ -450,11 +433,15 @@ async function captureAndAnalyzeLabel() {
         const apiKey = 'AQ.Ab8RN6I15' + 'BZKTlE7jgDE' + 'fqbuohdpF3' + 'PXULmaNdHASLdSkC1dUw';
         let extractedData = null;
 
-        if (apiKey) {
-            // Use Gemini API
-            extractedData = await analyzeWithGemini(base64Image, apiKey);
+        if (apiKey && apiKey.startsWith('AIz')) {
+            try {
+                extractedData = await analyzeWithGemini(base64Image, apiKey);
+            } catch (geminiError) {
+                console.warn('Gemini falló, usando OCR Tesseract...', geminiError);
+                extractedData = await analyzeWithTesseract(base64Image);
+            }
         } else {
-            // Fallback to Tesseract OCR
+            // Clave inválida o ausente, usar Tesseract
             extractedData = await analyzeWithTesseract(base64Image);
         }
 
