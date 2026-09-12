@@ -992,6 +992,25 @@ body {
     gap: 4px;
 }
 
+.photo-thumb {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+}
+
+.no-photo {
+    width: 40px;
+    height: 40px;
+    background: var(--bg-input);
+    border: 1px dashed var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+}
+
 .table .td-actions .btn-icon {
     width: 32px;
     height: 32px;

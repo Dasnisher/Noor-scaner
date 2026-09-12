@@ -632,6 +632,46 @@ function resetPhotoUI() {
     DOM.formPhoto.style.display = '';
 }
 
+// ---- Price Input Formatting ----
+function handlePriceInput(e) {
+    let input = e.target;
+    let val = input.value;
+    
+    // Remove all characters except digits, commas, dots
+    val = val.replace(/[^0-9.,]/g, '');
+
+    // Find the last dot or comma
+    let lastDotIndex = val.lastIndexOf('.');
+    let lastCommaIndex = val.lastIndexOf(',');
+    
+    let decimalIndex = Math.max(lastDotIndex, lastCommaIndex);
+    
+    let integerPart = val;
+    let decimalPart = '';
+    
+    if (decimalIndex !== -1) {
+        integerPart = val.substring(0, decimalIndex);
+        decimalPart = val.substring(decimalIndex + 1);
+        // Remove any non-digits from decimal part
+        decimalPart = decimalPart.replace(/[^0-9]/g, '');
+    }
+    
+    // Remove all non-digits from integer part (including formatting commas)
+    integerPart = integerPart.replace(/[^0-9]/g, '');
+    
+    if (integerPart) {
+        // Add thousand separators
+        integerPart = parseInt(integerPart, 10).toLocaleString('en-US');
+    }
+    
+    if (decimalIndex !== -1) {
+        input.value = integerPart + '.' + decimalPart;
+    } else {
+        input.value = integerPart;
+    }
+}
+DOM.formPrice.addEventListener('input', handlePriceInput);
+
 // ---- Lightbox ----
 function openLightbox(src) {
     DOM.lightboxImg.src = src;
@@ -818,8 +858,9 @@ async function handleFormSubmit(e) {
         const category = DOM.formCategory.value;
         const quantity = parseInt(DOM.formQuantity.value) || 0;
         
-        // Parse price safely, replacing comma with dot if necessary
-        const rawPrice = DOM.formPrice.value.replace(',', '.');
+        // The price might have thousands separators (e.g. 5,000.50)
+        // We remove all commas, then parse float
+        const rawPrice = DOM.formPrice.value.replace(/,/g, '');
         const price = parseFloat(rawPrice) || 0;
         
         const photo = STATE.currentPhotoBase64 || null;
